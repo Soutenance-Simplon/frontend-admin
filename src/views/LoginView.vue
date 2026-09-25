@@ -42,90 +42,70 @@ const fillAdminDemo = () => {
 </script>
 
 <template>
-  <div class="flutter-scaffold">
+  <div class="scaffold">
     <div class="login-container">
-      <div class="flutter-card" :class="{ 'shake-anim': isShaking }">
-        <!-- LOGO FLUTTER (diamyaraam.png) -->
+      <div class="login-card" :class="{ 'shake-anim': isShaking }">
+        <!-- LOGO -->
         <div class="logo-wrapper">
           <img
             src="@/assets/diamyaraam.png"
             alt="Diam-Yaraam"
-            class="flutter-logo"
+            class="logo"
           />
         </div>
 
-        <!-- WOLOF SUBTITLE / MOTTO -->
-        <p class="flutter-subtitle">
+        <!-- MOTTO -->
+        <p class="brand-subtitle">
           Fàggaru mo gën fadiou,aar sa yàram, aar sa dund
         </p>
 
         <!-- FORM -->
-        <form @submit.prevent="handleLogin" class="flutter-form">
+        <form @submit.prevent="handleLogin" class="form">
           <!-- EMAIL / TELEPHONE -->
-          <div class="flutter-field">
-            <label class="field-label">Email ou Téléphone</label>
-            <div class="input-container">
-              <span class="prefix-icon">
-                <Mail :size="18" :stroke-width="1.8" />
-              </span>
-              <input
-                type="text"
-                v-model="telephone"
-                placeholder="+221..."
-                required
-                autocomplete="username"
-                class="flutter-input"
-              />
-            </div>
+          <div class="input-group-tel">
+            <vue-tel-input
+              v-model="telephone"
+              mode="international"
+              defaultCountry="SN"
+              :dropdownOptions="{ showFlags: true, showDialCodeInSelection: true, showSearchBox: true }"
+              :inputOptions="{ placeholder: 'Numéro de téléphone ou Email', autocomplete: 'username' }"
+            ></vue-tel-input>
           </div>
 
           <!-- MOT DE PASSE -->
-          <div class="flutter-field">
-            <label class="field-label">Mot de passe</label>
-            <div class="input-container">
-              <span class="prefix-icon">
-                <Lock :size="18" :stroke-width="1.8" />
-              </span>
-              <input
-                :type="showPassword ? 'text' : 'password'"
-                v-model="password"
-                placeholder="Mot de passe"
-                required
-                autocomplete="current-password"
-                class="flutter-input with-suffix"
-              />
-              <button
-                type="button"
-                class="suffix-eye-btn"
-                @click="showPassword = !showPassword"
-                tabindex="-1"
-              >
-                <EyeOff v-if="showPassword" :size="18" :stroke-width="1.8" />
-                <Eye v-else :size="18" :stroke-width="1.8" />
-              </button>
-            </div>
+          <div class="input-group">
+            <span class="prefix">
+              <Lock :size="18" class="icon-lock" />
+            </span>
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="password"
+              placeholder="Mot de passe"
+              required
+              autocomplete="current-password"
+              class="input-field"
+            />
+            <button
+              type="button"
+              class="suffix-btn"
+              @click="showPassword = !showPassword"
+              tabindex="-1"
+            >
+              <EyeOff v-if="showPassword" :size="18" />
+              <Eye v-else :size="18" />
+            </button>
           </div>
 
-          <!-- BUTTON ELEVATED BUTTON -->
-          <button
-            type="submit"
-            class="flutter-elevated-button"
-            :disabled="loading"
-          >
-            <span v-if="loading" class="spinner-small"></span>
-            <span v-else class="button-text">Connexion</span>
+          <!-- BUTTON -->
+          <button type="submit" class="btn-submit" :disabled="loading">
+            <span v-if="loading" class="spinner"></span>
+            <span v-else>Connexion</span>
           </button>
 
-          <!-- REGISTER / DEMO TEXT BUTTON -->
-          <button
-            type="button"
-            class="flutter-text-button"
-            @click="fillAdminDemo"
-          >
-          </button>
+        
 
-          <!-- ERROR MESSAGE -->
-          <div v-if="errorMessage" class="flutter-error">
+          <!-- ERROR -->
+          <div v-if="errorMessage" class="error-msg">
             {{ errorMessage }}
           </div>
         </form>
@@ -135,10 +115,9 @@ const fillAdminDemo = () => {
 </template>
 
 <style scoped>
-/* Page background matches Flutter Scaffold backgroundColor: AppColors.primary (#0D7C66) */
-.flutter-scaffold {
+.scaffold {
   min-height: 100vh;
-  width: 100vw;
+  width: 100%;
   background-color: #0D7C66;
   display: flex;
   align-items: center;
@@ -148,24 +127,22 @@ const fillAdminDemo = () => {
 
 .login-container {
   width: 100%;
-  max-width: 440px;
+  max-width: 900px;
   display: flex;
   justify-content: center;
 }
 
-/* Flutter Card with borderRadius: BorderRadius.circular(22), flat design (no shadow) */
-.flutter-card {
-  background: #FFFFFF;
-  border-radius: 22px;
-  padding: 28px;
+.login-card {
+  background: #F4F2F7;
+  border-radius: 16px;
+  padding: 40px 60px;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Shake animation on error matching Flutter ShakeController */
 .shake-anim {
   animation: shake 0.5s ease-in-out;
 }
@@ -178,171 +155,174 @@ const fillAdminDemo = () => {
   80% { transform: translateX(10px); }
 }
 
-/* Logo diamyaraam.png */
 .logo-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 8px;
 }
 
-.flutter-logo {
-  width: 250px;
-  height: 155px;
+.logo {
+  width: 220px;
+  height: auto;
   object-fit: contain;
 }
 
-/* Wolof subtitle style matching Flutter AppTextStyles.subtitle in brand green */
-.flutter-subtitle {
+.brand-subtitle {
   color: #0D7C66;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   text-align: center;
-  margin: 0 0 28px 0;
-  line-height: 1.4;
+  margin: 10px 0 32px 0;
 }
 
-/* Form */
-.flutter-form {
+.form {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.flutter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #0D7C66;
-  margin-left: 4px;
-}
-
-.input-container {
+.input-group {
   position: relative;
   display: flex;
   align-items: center;
-}
-
-.prefix-icon {
-  position: absolute;
-  left: 14px;
-  color: #0D7C66;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.flutter-input {
-  width: 100%;
-  height: 48px;
-  background-color: #FFFFFF;
-  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF;
   border-radius: 12px;
-  padding: 0 16px 0 44px;
-  font-size: 15px;
-  color: #0F172A;
-  transition: border-color 0.2s ease;
+  height: 52px;
 }
 
-.flutter-input.with-suffix {
-  padding-right: 44px;
+.input-group-tel {
+  width: 100%;
+  height: 52px;
+  background: #FFFFFF;
+  border-radius: 12px;
 }
 
-.flutter-input:focus {
+:deep(.vue-tel-input) {
+  border: none !important;
+  border-radius: 12px !important;
+  height: 100%;
+  box-shadow: none !important;
+  background: transparent;
+}
+
+:deep(.vue-tel-input:focus-within) {
+  box-shadow: none !important;
+  border: none !important;
+}
+
+:deep(.vti__input) {
+  color: #0D7C66;
+  font-size: 14px;
+  background: transparent;
+  padding-left: 8px;
+}
+
+:deep(.vti__input::placeholder) {
+  color: #0D7C66;
+  opacity: 0.8;
+}
+
+:deep(.vti__dropdown) {
+  padding: 0 12px 0 16px;
+  border-radius: 12px 0 0 12px;
+}
+
+:deep(.vti__dropdown:hover) {
+  background: transparent;
+}
+
+:deep(.vti__selection) {
+  font-size: 14px;
+  color: #0D7C66;
+}
+
+.icon-lock {
+  color: #0D7C66;
+}
+
+.input-field {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0 16px;
+  font-size: 14px;
+  color: #0D7C66;
   outline: none;
-  border-color: #0D7C66;
 }
 
-.suffix-eye-btn {
-  position: absolute;
-  right: 12px;
+.input-field::placeholder {
+  color: #0D7C66;
+  opacity: 0.8;
+}
+
+.suffix-btn {
   background: transparent;
   border: none;
-  color: #94A3B8;
+  color: #0D7C66;
+  padding-right: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px;
-  transition: color 0.15s;
+  transition: color 0.2s;
 }
 
-.suffix-eye-btn:hover {
-  color: #0D7C66;
+.suffix-btn:hover {
+  color: #096352;
 }
 
-/* Flutter ElevatedButton style */
-.flutter-elevated-button {
-  width: 100%;
-  height: 50px;
-  background-color: #0D7C66;
-  color: #FFFFFF;
+.btn-submit {
+  background: #FFFFFF;
   border: none;
-  border-radius: 14px;
+  border-radius: 12px;
+  height: 52px;
+  color: #0D7C66;
+  font-weight: 700;
+  font-size: 15px;
   cursor: pointer;
+  transition: background-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 8px;
-  transition: background-color 0.15s ease;
 }
 
-.flutter-elevated-button:hover:not(:disabled) {
-  background-color: #096352;
+.btn-submit:hover:not(:disabled) {
+  background-color: #F8F9FA;
 }
 
-.flutter-elevated-button:disabled {
+.btn-submit:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-.button-text {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-/* Flutter TextButton style for link */
-.flutter-text-button {
+.btn-link {
   background: transparent;
   border: none;
   color: #0D7C66;
+  font-weight: 600;
   font-size: 14px;
-  font-weight: 700;
   cursor: pointer;
-  padding: 8px;
-  margin-top: 4px;
   text-align: center;
-  transition: opacity 0.15s;
 }
 
-.flutter-text-button:hover {
+.btn-link:hover {
   text-decoration: underline;
-  opacity: 0.85;
 }
 
-/* Error message matching Flutter */
-.flutter-error {
+.error-msg {
   color: #DC2626;
   font-weight: 600;
   font-size: 14px;
   text-align: center;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
-/* Spinner */
-.spinner-small {
+.spinner {
   width: 22px;
   height: 22px;
-  border: 2.5px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #FFFFFF;
+  border: 2.5px solid rgba(13, 124, 102, 0.2);
+  border-top-color: #0D7C66;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
