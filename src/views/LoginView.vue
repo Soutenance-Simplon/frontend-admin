@@ -8,8 +8,8 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-vue-next'
 const router = useRouter()
 const toast = useToast()
 
-const telephone = ref('+221770000000')
-const password = ref('Fatou3112')
+const telephone = ref('770000000')
+const password = ref('monpasse')
 const showPassword = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
@@ -36,8 +36,8 @@ const handleLogin = async () => {
 }
 
 const fillAdminDemo = () => {
-  telephone.value = '+221770000000'
-  password.value = 'Fatou3112'
+  telephone.value = '770000000'
+  password.value = 'monpasse'
 }
 </script>
 
