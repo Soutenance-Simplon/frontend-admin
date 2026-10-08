@@ -1,9 +1,13 @@
 <script setup lang="ts">
+// Importation du module ou composant
 import { useConfirm } from '../../composables/useConfirm'
+// Importation du module ou composant
 import { AlertTriangle, AlertCircle, HelpCircle, X } from 'lucide-vue-next'
 
+// Déclaration de variable
 const { state, handleConfirm, handleCancel } = useConfirm()
 
+// Déclaration de variable
 const getIcon = (variant?: string) => {
   switch (variant) {
     case 'warning': return AlertTriangle
@@ -15,27 +19,38 @@ const getIcon = (variant?: string) => {
 
 <template>
   <Teleport to="body">
+    <!-- Conteneur de bloc (div) -->
     <div v-if="state.isOpen" class="modal-overlay" @click.self="handleCancel">
+      <!-- Conteneur de bloc (div) -->
       <div class="confirm-modal-content">
+        <!-- Bouton cliquable -->
         <button class="confirm-close-btn" @click="handleCancel" aria-label="Fermer la boîte de dialogue">
           <X :size="16" :stroke-width="2" />
         </button>
 
+        <!-- Conteneur de bloc (div) -->
         <div class="confirm-body">
+          <!-- Conteneur de bloc (div) -->
           <div :class="['confirm-icon-badge', state.variant || 'danger']">
             <component :is="getIcon(state.variant)" :size="22" :stroke-width="2" />
           </div>
 
+          <!-- Conteneur de bloc (div) -->
           <div class="confirm-text">
+            <!-- Titre de section -->
             <h3 class="confirm-title">{{ state.title }}</h3>
+            <!-- Paragraphe de texte -->
             <p class="confirm-message">{{ state.message }}</p>
           </div>
         </div>
 
+        <!-- Conteneur de bloc (div) -->
         <div class="confirm-actions">
+          <!-- Bouton cliquable -->
           <button type="button" class="btn btn-secondary" @click="handleCancel">
             {{ state.cancelText }}
           </button>
+          <!-- Bouton cliquable -->
           <button
             type="button"
             :class="[
@@ -57,6 +72,7 @@ const getIcon = (variant?: string) => {
 </template>
 
 <style scoped>
+/* Sélecteur de classe CSS */
 .confirm-modal-content {
   position: relative;
   background: #FFFFFF;
@@ -68,6 +84,7 @@ const getIcon = (variant?: string) => {
   animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Sélecteur de classe CSS */
 .confirm-close-btn {
   position: absolute;
   top: 14px;
@@ -84,11 +101,13 @@ const getIcon = (variant?: string) => {
   transition: all 0.15s;
 }
 
+/* Sélecteur de classe CSS */
 .confirm-close-btn:hover {
   color: var(--text-dark);
   background: #F1F5F9;
 }
 
+/* Sélecteur de classe CSS */
 .confirm-body {
   display: flex;
   gap: 16px;
@@ -96,6 +115,7 @@ const getIcon = (variant?: string) => {
   margin-bottom: 20px;
 }
 
+/* Sélecteur de classe CSS */
 .confirm-icon-badge {
   width: 44px;
   height: 44px;
@@ -106,29 +126,34 @@ const getIcon = (variant?: string) => {
   flex-shrink: 0;
 }
 
+/* Sélecteur de classe CSS */
 .confirm-icon-badge.danger {
   background: var(--danger-light);
   color: var(--danger);
   border: 1px solid var(--danger-border);
 }
 
+/* Sélecteur de classe CSS */
 .confirm-icon-badge.warning {
   background: var(--warning-light);
   color: var(--warning);
   border: 1px solid var(--warning-border);
 }
 
+/* Sélecteur de classe CSS */
 .confirm-icon-badge.primary {
   background: var(--primary-light);
   color: var(--primary);
   border: 1px solid var(--primary-border);
 }
 
+/* Sélecteur de classe CSS */
 .confirm-text {
   flex: 1;
   padding-top: 2px;
 }
 
+/* Sélecteur de classe CSS */
 .confirm-title {
   font-size: 1rem;
   font-weight: 700;
@@ -137,12 +162,14 @@ const getIcon = (variant?: string) => {
   letter-spacing: -0.01em;
 }
 
+/* Sélecteur de classe CSS */
 .confirm-message {
   font-size: 0.85rem;
   color: var(--text-muted);
   line-height: 1.45;
 }
 
+/* Sélecteur de classe CSS */
 .confirm-actions {
   display: flex;
   justify-content: flex-end;

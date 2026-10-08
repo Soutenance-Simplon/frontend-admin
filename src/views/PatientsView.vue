@@ -1,16 +1,48 @@
 <script setup lang="ts">
+/**
+ * ============================================================================
+ * VUE GESTION DES PATIENTS & SUPERVISION DU QR CODE D'URGENCE (SANTÉ & CDP)
+ * ============================================================================
+ * RÔLE ARCHITECTURAL (POINT MAJEUR DE SÉCURITÉ EN SOUTENANCE) :
+ * Ce module gère les dossiers patients administratifs et fournit une console de
+ * supervision et simulation du système vital de QR Code d'Urgence Diam-Yaraam.
+ *
+ * INNOVATION & CONFORMITÉ LÉGALE SÉNÉGALAISE (LOI N° 2008-12 / CDP) :
+ * 1. QR Code d'Urgence à Double Niveau de Lecture :
+ *    - Niveau Public (Passant / Secouriste sans compte) : Uniquement groupe sanguin,
+ *      allergies vitales et téléphone de la personne à prévenir.
+ *    - Niveau Praticien ("Bris de glace" / Authentifié ONMS) : Accès au volet de
+ *      synthèse médicale pour sauver la vie en cas d'inconscience.
+ * 2. Audit & Notification en Temps Réel :
+ *    - Chaque scan du QR code d'urgence génère une notification WhatsApp/Push
+ *      immédiate au patient ou à ses proches avec horodatage et identité du médecin.
+ * 3. Droit d'Opposition & Signalement d'Abus :
+ *    - Le patient dispose d'une interface pour confirmer la légitimité de l'accès
+ *      d'urgence ou signaler une intrusion abusive auprès du Délégué à la Protection
+ *      des Données (DPO).
+ * ============================================================================
+ */
+// Importation du module ou composant
 import { ref, computed, onMounted } from 'vue'
+// Importation du module ou composant
 import QRCode from 'qrcode'
+// Importation du module ou composant
 import Modal from '../components/common/Modal.vue'
+// Importation du module ou composant
 import Pagination from '../components/common/Pagination.vue'
+// Importation du module ou composant
 import {
   patientService,
   type PatientProfile,
   type DossierMedical
 } from '../services/patient.service'
+// Importation du module ou composant
 import { userService, type UserItem } from '../services/user.service'
+// Importation du module ou composant
 import { notificationService } from '../services/notification.service'
+// Importation du module ou composant
 import { useToast } from '../composables/useToast'
+// Importation du module ou composant
 import {
   Search,
   FileText,
@@ -39,31 +71,50 @@ import {
   Eye
 } from 'lucide-vue-next'
 
+// Déclaration de variable
 const toast = useToast()
 
-const patients = ref<PatientProfile[]>([])
-const usersMap = ref<Map<string, UserItem>>(new Map())
-const loading = ref(true)
-const searchQuery = ref('')
+// --- Données et état réactif ---
+const patients = ref<PatientProfile[]>([])                // Liste des profils patients
+// Déclaration de variable
+const usersMap = ref<Map<string, UserItem>>(new Map())     // Index des comptes utilisateurs associés
+// Déclaration de variable
+const loading = ref(true)                                 // État de chargement
+// Déclaration de variable
+const searchQuery = ref('')                               // Recherche de patient (nom, téléphone, nina/cni)
 
 // Administrative Patient Modal
 const isPatientModalOpen = ref(false)
+// Déclaration de variable
 const selectedPatient = ref<PatientProfile | null>(null)
+// Déclaration de variable
 const selectedDossier = ref<DossierMedical | null>(null)
+// Déclaration de variable
 const patientFamille = ref<any[]>([])
+// Déclaration de variable
 const loadingDossier = ref(false)
+// Déclaration de variable
 const qrCodeDataUrl = ref<string>('')
+// Déclaration de variable
 const copiedQr = ref(false)
 
 // Emergency QR Scan & Patient Reporting Simulation Modal
 const isScanSimModalOpen = ref(false)
+// Déclaration de variable
 const scanSimEmergencyChoice = ref<'none' | 'urgent' | 'not_urgent'>('none')
+// Déclaration de variable
 const doctorName = ref('Dr. Cheikh Fall (Cardiologie - Hôpital Principal)')
+// Déclaration de variable
 const patientVerificationState = ref<'waiting' | 'confirmed' | 'reporting' | 'reported'>('waiting')
+// Déclaration de variable
 const reportMotifPreset = ref('Je n’étais absolument pas en situation d’urgence vitale ce jour-là.')
+// Déclaration de variable
 const reportMotifCustom = ref('')
+// Déclaration de variable
 const isSendingReport = ref(false)
+// Déclaration de variable
 const lastEmergencyAccessDate = ref('')
+// Déclaration de variable
 const activeSimTab = ref<'soignant' | 'patient'>('soignant')
 
 interface PatientAccessRecord {
@@ -77,6 +128,7 @@ interface PatientAccessRecord {
   motifSignalement?: string
 }
 
+// Déclaration de variable
 const patientAccessLogs = ref<PatientAccessRecord[]>([
   {
     id: 'acc-prev-1',
@@ -89,14 +141,18 @@ const patientAccessLogs = ref<PatientAccessRecord[]>([
   }
 ])
 
+// Déclaration de variable
 const fetchPatients = async () => {
   loading.value = true
+  // Bloc d'essai pour gérer les erreurs
   try {
+    // Déclaration de variable
     const [pts, allUsers] = await Promise.all([
       patientService.getAllPatients(),
       userService.getAllUsers()
     ])
     patients.value = pts
+    // Déclaration de variable
     const map = new Map<string, UserItem>()
     allUsers.forEach(u => map.set(u.id, u))
     usersMap.value = map
@@ -107,44 +163,68 @@ const fetchPatients = async () => {
   }
 }
 
+// Déclaration de variable
 const getPatientUser = (patient: PatientProfile): UserItem | undefined => {
+  // Retourne la valeur
   return usersMap.value.get(patient.userId)
 }
 
+// Déclaration de variable
 const getPatientName = (patient: PatientProfile): string => {
+  // Déclaration de variable
   const u = getPatientUser(patient)
+  // Condition logique
   if (u && (u.firstName || u.lastName)) {
+    // Retourne la valeur
     return `${u.firstName || ''} ${u.lastName || ''}`.trim()
   }
+  // Retourne la valeur
   return `Patient #${patient.id.substring(0, 6).toUpperCase()}`
 }
 
+// Déclaration de variable
 const getPatientPhone = (patient: PatientProfile): string => {
+  // Déclaration de variable
   const u = getPatientUser(patient)
+  // Retourne la valeur
   return u?.telephone || ''
 }
 
+// Déclaration de variable
 const getPatientEmail = (patient: PatientProfile): string => {
+  // Déclaration de variable
   const u = getPatientUser(patient)
+  // Retourne la valeur
   return u?.email || 'Non renseigné'
 }
 
+// Déclaration de variable
 const getPatientInitials = (patient: PatientProfile): string => {
+  // Déclaration de variable
   const u = getPatientUser(patient)
+  // Condition logique
   if (u) {
+    // Déclaration de variable
     const f = u.firstName?.[0] || ''
+    // Déclaration de variable
     const l = u.lastName?.[0] || ''
+    // Déclaration de variable
     const inits = (f + l).toUpperCase()
+    // Condition logique
     if (inits) return inits
   }
+  // Retourne la valeur
   return 'PT'
 }
 
+// Déclaration de variable
 const generateQrCode = async (text: string) => {
+  // Condition logique
   if (!text) {
     qrCodeDataUrl.value = ''
     return
   }
+  // Bloc d'essai pour gérer les erreurs
   try {
     qrCodeDataUrl.value = await QRCode.toDataURL(text, {
       width: 160,
@@ -156,14 +236,19 @@ const generateQrCode = async (text: string) => {
       errorCorrectionLevel: 'M'
     })
   } catch (err) {
+    // Trace dans la console de debug
     console.error('Erreur génération QR Code:', err)
     qrCodeDataUrl.value = ''
   }
 }
 
+// Déclaration de variable
 const copyQrText = async (text: string) => {
+  // Condition logique
   if (!text) return
+  // Bloc d'essai pour gérer les erreurs
   try {
+    // Attente de la promesse (asynchrone)
     await navigator.clipboard.writeText(text)
     copiedQr.value = true
     toast.success('Code QR copié dans le presse-papiers')
@@ -175,6 +260,7 @@ const copyQrText = async (text: string) => {
   }
 }
 
+// Déclaration de variable
 const printDossier = () => {
   window.print()
 }
@@ -183,27 +269,36 @@ onMounted(() => {
   fetchPatients()
 })
 
+// Déclaration de variable
 const openPatientDetails = async (patient: PatientProfile) => {
   selectedPatient.value = patient
   isPatientModalOpen.value = true
   loadingDossier.value = true
   qrCodeDataUrl.value = ''
 
+  // Bloc d'essai pour gérer les erreurs
   try {
+    // Déclaration de variable
     const [dossierRes, familleRes] = await Promise.allSettled([
       patientService.getDossierByPatientId(patient.id),
       patientService.getMembresFamille(patient.userId)
     ])
 
+    // Condition logique
     if (dossierRes.status === 'fulfilled' && dossierRes.value) {
       selectedDossier.value = dossierRes.value
+      // Déclaration de variable
       const qrText = dossierRes.value.codeQrSecurise || `QR-PT-${patient.id.substring(0, 8).toUpperCase()}`
+      // Attente de la promesse (asynchrone)
       await generateQrCode(qrText)
     } else {
+      // Déclaration de variable
       const qrText = `QR-PT-${patient.id.substring(0, 8).toUpperCase()}`
+      // Attente de la promesse (asynchrone)
       await generateQrCode(qrText)
     }
 
+    // Condition logique
     if (familleRes.status === 'fulfilled' && familleRes.value) {
       patientFamille.value = familleRes.value
     } else {
@@ -216,6 +311,7 @@ const openPatientDetails = async (patient: PatientProfile) => {
   }
 }
 
+// Déclaration de variable
 const openQrScanSimulation = () => {
   scanSimEmergencyChoice.value = 'none'
   patientVerificationState.value = 'waiting'
@@ -223,7 +319,9 @@ const openQrScanSimulation = () => {
   isScanSimModalOpen.value = true
 }
 
+// Déclaration de variable
 const declareUrgence = async (isUrgent: boolean) => {
+  // Condition logique
   if (isUrgent) {
     scanSimEmergencyChoice.value = 'urgent'
     patientVerificationState.value = 'waiting'
@@ -236,7 +334,9 @@ const declareUrgence = async (isUrgent: boolean) => {
       minute: '2-digit'
     })
 
+    // Déclaration de variable
     const patientName = selectedPatient.value ? getPatientName(selectedPatient.value) : 'Patient'
+    // Déclaration de variable
     const qrToken = selectedDossier.value?.codeQrSecurise || ('QR-PT-' + selectedPatient.value?.id.substring(0, 8).toUpperCase())
 
     // 1. Enregistrement d'audit et notification réelle vers notification-service et auth-service
@@ -266,29 +366,39 @@ const declareUrgence = async (isUrgent: boolean) => {
   }
 }
 
+// Déclaration de variable
 const confirmPatientUrgency = () => {
   patientVerificationState.value = 'confirmed'
+  // Déclaration de variable
   const firstLog = patientAccessLogs.value[0]
+  // Condition logique
   if (firstLog) {
     firstLog.statut = 'CONFIRME_PAR_PATIENT'
   }
   toast.success("✅ Urgence vitale confirmée par le patient : Accès certifié légitime")
 }
 
+// Déclaration de variable
 const initiatePatientReport = () => {
   patientVerificationState.value = 'reporting'
 }
 
+// Déclaration de variable
 const cancelPatientReport = () => {
   patientVerificationState.value = 'waiting'
 }
 
+// Déclaration de variable
 const submitPatientReport = async () => {
+  // Condition logique
   if (!selectedPatient.value) return
   isSendingReport.value = true
+  // Déclaration de variable
   const motifFinal = reportMotifCustom.value.trim() || reportMotifPreset.value
 
+  // Bloc d'essai pour gérer les erreurs
   try {
+    // Attente de la promesse (asynchrone)
     await notificationService.reportAbusiveAccess({
       patientUserId: selectedPatient.value.userId,
       patientName: getPatientName(selectedPatient.value),
@@ -298,7 +408,9 @@ const submitPatientReport = async () => {
     })
 
     patientVerificationState.value = 'reported'
+    // Déclaration de variable
     const firstLog = patientAccessLogs.value[0]
+    // Condition logique
     if (firstLog) {
       firstLog.statut = 'SIGNALE_ABUSIF'
       firstLog.motifSignalement = motifFinal
@@ -314,14 +426,22 @@ const submitPatientReport = async () => {
 
 // Pagination
 const currentPage = ref(1)
+// Déclaration de variable
 const pageSize = ref(8)
 
+// Déclaration de variable
 const filteredPatientsList = computed(() => {
+  // Condition logique
   if (!searchQuery.value.trim()) return patients.value
+  // Déclaration de variable
   const q = searchQuery.value.toLowerCase()
+  // Retourne la valeur
   return patients.value.filter(p => {
+    // Déclaration de variable
     const name = getPatientName(p).toLowerCase()
+    // Déclaration de variable
     const phone = getPatientPhone(p).toLowerCase()
+    // Retourne la valeur
     return (
       name.includes(q) ||
       phone.includes(q) ||
@@ -334,23 +454,34 @@ const filteredPatientsList = computed(() => {
   })
 })
 
+// Déclaration de variable
 const paginatedPatients = computed(() => {
+  // Déclaration de variable
   const start = (currentPage.value - 1) * pageSize.value
+  // Retourne la valeur
   return filteredPatientsList.value.slice(start, start + pageSize.value)
 })
 
+// Déclaration de variable
 const handleSearch = () => {
   currentPage.value = 1
 }
 </script>
 
 <template>
+  <!-- Conteneur de bloc (div) -->
   <div class="patients-view">
+    <!-- Conteneur de bloc (div) -->
     <div class="card-panel">
+      <!-- Conteneur de bloc (div) -->
       <div class="panel-header">
+        <!-- Conteneur de bloc (div) -->
         <div class="toolbar">
+          <!-- Conteneur de bloc (div) -->
           <div class="search-input-wrapper">
+            <!-- Conteneur en ligne (span) -->
             <span class="search-icon-inside"><Search :size="15" :stroke-width="1.8" /></span>
+            <!-- Champ de saisie utilisateur -->
             <input
               type="text"
               v-model="searchQuery"
@@ -359,24 +490,33 @@ const handleSearch = () => {
             />
           </div>
         </div>
+        <!-- Conteneur de bloc (div) -->
         <div class="record-counter">
           {{ filteredPatientsList.length }} patient(s) répertorié(s)
         </div>
       </div>
 
+      <!-- Conteneur de bloc (div) -->
       <div class="table-responsive">
+        <!-- Conteneur de bloc (div) -->
         <div v-if="loading" class="loading-state">
+          <!-- Conteneur de bloc (div) -->
           <div class="spinner"></div>
+          <!-- Paragraphe de texte -->
           <p>Chargement du répertoire des patients...</p>
         </div>
 
+        <!-- Conteneur de bloc (div) -->
         <div v-else-if="filteredPatientsList.length === 0" class="empty-state">
           <HeartPulse :size="32" class="empty-icon" />
+          <!-- Paragraphe de texte -->
           <p>Aucun dossier patient ne correspond à votre recherche.</p>
         </div>
 
+        <!-- Élément de tableau de données -->
         <table v-else class="data-table">
           <thead>
+            <!-- Élément de tableau de données -->
             <tr>
               <th>Patient & Identifiant</th>
               <th>Contact d'Urgence</th>
@@ -386,44 +526,68 @@ const handleSearch = () => {
             </tr>
           </thead>
           <tbody>
+            <!-- Élément de tableau de données -->
             <tr v-for="p in paginatedPatients" :key="p.id">
+              <!-- Élément de tableau de données -->
               <td>
+                <!-- Conteneur de bloc (div) -->
                 <div class="patient-profile-cell">
+                  <!-- Conteneur de bloc (div) -->
                   <div class="patient-avatar-circle">
                     {{ getPatientInitials(p) }}
                   </div>
+                  <!-- Conteneur de bloc (div) -->
                   <div class="patient-info-text">
+                    <!-- Conteneur de bloc (div) -->
                     <div class="patient-full-name">{{ getPatientName(p) }}</div>
+                    <!-- Conteneur de bloc (div) -->
                     <div class="patient-meta-row">
+                      <!-- Conteneur en ligne (span) -->
                       <span class="id-tag">Dossier N° {{ p.id.substring(0, 6).toUpperCase() }}</span>
+                      <!-- Conteneur en ligne (span) -->
                       <span v-if="getPatientPhone(p)" class="patient-tel-tag">• {{ getPatientPhone(p) }}</span>
                     </div>
                   </div>
                 </div>
               </td>
+              <!-- Élément de tableau de données -->
               <td>
+                <!-- Conteneur de bloc (div) -->
                 <div v-if="p.contactUrgenceNom" class="contact-urgence-cell">
+                  <!-- Conteneur de bloc (div) -->
                   <div class="contact-urgence-nom">
                     <strong>{{ p.contactUrgenceNom }}</strong>
+                    <!-- Conteneur en ligne (span) -->
                     <span v-if="p.contactUrgenceLien" class="contact-lien-tag">({{ p.contactUrgenceLien }})</span>
                   </div>
+                  <!-- Conteneur de bloc (div) -->
                   <div class="text-muted text-sm">{{ p.contactUrgenceTelephone }}</div>
                 </div>
+                <!-- Conteneur de bloc (div) -->
                 <div v-else class="text-muted text-sm">Non renseigné</div>
               </td>
+              <!-- Élément de tableau de données -->
               <td>
+                <!-- Conteneur de bloc (div) -->
                 <div>{{ p.ville || 'Dakar' }}</div>
+                <!-- Conteneur de bloc (div) -->
                 <div class="text-muted text-sm">{{ p.region || 'Sénégal' }}</div>
               </td>
+              <!-- Élément de tableau de données -->
               <td>
+                <!-- Conteneur en ligne (span) -->
                 <span class="badge" :class="p.consentAnalyseIa ? 'badge-actif' : 'badge-suspendu'">
+                  <!-- Conteneur en ligne (span) -->
                   <span class="badge-dot"></span>
                   {{ p.consentAnalyseIa ? 'Consentement Validé' : 'Non Partagé' }}
                 </span>
               </td>
+              <!-- Élément de tableau de données -->
               <td>
+                <!-- Bouton cliquable -->
                 <button class="btn btn-secondary btn-sm" @click="openPatientDetails(p)">
                   <ShieldCheck :size="13" :stroke-width="1.8" />
+                  <!-- Conteneur en ligne (span) -->
                   <span>Fiche Administrative</span>
                 </button>
               </td>
@@ -448,39 +612,56 @@ const handleSearch = () => {
       maxWidth="840px"
       @close="isPatientModalOpen = false"
     >
+      <!-- Conteneur de bloc (div) -->
       <div v-if="loadingDossier" class="loading-state">
+        <!-- Conteneur de bloc (div) -->
         <div class="spinner"></div>
+        <!-- Paragraphe de texte -->
         <p>Chargement des informations administratives...</p>
       </div>
 
+      <!-- Conteneur de bloc (div) -->
       <div v-else class="dossier-details-wrapper">
         <!-- Patient Identity Banner -->
         <div class="patient-modal-hero">
+          <!-- Conteneur de bloc (div) -->
           <div class="hero-left">
+            <!-- Conteneur de bloc (div) -->
             <div class="hero-avatar">
               {{ selectedPatient ? getPatientInitials(selectedPatient) : 'PT' }}
             </div>
+            <!-- Conteneur de bloc (div) -->
             <div class="hero-identity">
+              <!-- Conteneur de bloc (div) -->
               <div class="hero-name">{{ selectedPatient ? getPatientName(selectedPatient) : '' }}</div>
+              <!-- Conteneur de bloc (div) -->
               <div class="hero-meta">
+                <!-- Conteneur en ligne (span) -->
                 <span class="hero-id">ID N° {{ selectedPatient?.id.substring(0, 8).toUpperCase() }}</span>
+                <!-- Conteneur en ligne (span) -->
                 <span v-if="selectedPatient && getPatientPhone(selectedPatient)" class="hero-meta-item">
                   <Phone :size="12" /> {{ getPatientPhone(selectedPatient) }}
                 </span>
+                <!-- Conteneur en ligne (span) -->
                 <span v-if="selectedPatient && getPatientEmail(selectedPatient)" class="hero-meta-item">
                   <Mail :size="12" /> {{ getPatientEmail(selectedPatient) }}
                 </span>
+                <!-- Conteneur en ligne (span) -->
                 <span v-if="selectedPatient?.ville" class="hero-meta-item">
                   <MapPin :size="12" /> {{ selectedPatient.ville }}, {{ selectedPatient.region || 'Sénégal' }}
                 </span>
               </div>
             </div>
           </div>
+          <!-- Conteneur de bloc (div) -->
           <div class="hero-badges">
+            <!-- Conteneur en ligne (span) -->
             <span class="badge badge-actif">
+              <!-- Conteneur en ligne (span) -->
               <span class="badge-dot"></span>
               Compte Actif
             </span>
+            <!-- Conteneur en ligne (span) -->
             <span class="badge badge-role">Rôle : PATIENT</span>
           </div>
         </div>
@@ -489,50 +670,71 @@ const handleSearch = () => {
         <div class="passport-grid">
           <!-- Left: Administrative & Contacts Information -->
           <div class="passport-card admin-essentials">
+            <!-- Conteneur de bloc (div) -->
             <div class="card-header-mini">
               <UserCheck :size="15" class="text-vert" />
+              <!-- Conteneur en ligne (span) -->
               <span class="mini-title">Coordonnées Civiles & Ayants Droit</span>
             </div>
 
+            <!-- Conteneur de bloc (div) -->
             <div class="essentials-body">
               <!-- Civil info -->
               <div class="admin-data-row">
+                <!-- Conteneur de bloc (div) -->
                 <div class="admin-data-col">
+                  <!-- Conteneur en ligne (span) -->
                   <span class="item-label">Adresse de résidence</span>
+                  <!-- Conteneur en ligne (span) -->
                   <span class="item-val">{{ selectedPatient?.adresse || 'Non renseignée' }}</span>
                 </div>
+                <!-- Conteneur de bloc (div) -->
                 <div class="admin-data-col">
+                  <!-- Conteneur en ligne (span) -->
                   <span class="item-label">Ville / Région</span>
+                  <!-- Conteneur en ligne (span) -->
                   <span class="item-val">{{ selectedPatient?.ville || 'Dakar' }}, {{ selectedPatient?.region || 'Sénégal' }}</span>
                 </div>
               </div>
 
               <!-- Emergency Contact -->
               <div class="essential-item contact-item">
+                <!-- Conteneur de bloc (div) -->
                 <div class="item-label">Contact d'Urgence Référent (Administratif)</div>
+                <!-- Conteneur de bloc (div) -->
                 <div v-if="selectedPatient?.contactUrgenceNom" class="contact-highlight">
+                  <!-- Conteneur de bloc (div) -->
                   <div class="contact-name">
                     <strong>{{ selectedPatient.contactUrgenceNom }}</strong>
+                    <!-- Conteneur en ligne (span) -->
                     <span v-if="selectedPatient.contactUrgenceLien" class="contact-lien">({{ selectedPatient.contactUrgenceLien }})</span>
                   </div>
+                  <!-- Conteneur de bloc (div) -->
                   <div class="contact-tel">
                     <Phone :size="12" /> {{ selectedPatient.contactUrgenceTelephone }}
                   </div>
                 </div>
+                <!-- Conteneur de bloc (div) -->
                 <div v-else class="text-muted text-xs">Aucun contact d'urgence consigné</div>
               </div>
 
               <!-- Family Relatives -->
               <div class="essential-item">
+                <!-- Conteneur de bloc (div) -->
                 <div class="item-label">Proches & Ayants Droit Liés</div>
+                <!-- Conteneur de bloc (div) -->
                 <div v-if="patientFamille.length > 0" class="family-list">
+                  <!-- Conteneur de bloc (div) -->
                   <div v-for="f in patientFamille" :key="f.id" class="family-member-chip">
+                    <!-- Conteneur en ligne (span) -->
                     <span class="family-name">
                       <strong>{{ ((f.prenom || '') + ' ' + (f.nom || '')).trim() || 'Membre Famille' }}</strong>
                     </span>
+                    <!-- Conteneur en ligne (span) -->
                     <span class="family-relation">{{ f.lienParente || 'Ayant-droit' }}</span>
                   </div>
                 </div>
+                <!-- Conteneur de bloc (div) -->
                 <div v-else class="text-muted text-xs">Aucun ayant-droit rattaché à ce compte</div>
               </div>
             </div>
@@ -540,33 +742,47 @@ const handleSearch = () => {
 
           <!-- Right: Identification Support (QR Code & NFC) -->
           <div class="passport-card qr-code-card">
+            <!-- Conteneur de bloc (div) -->
             <div class="card-header-mini">
               <QrCode :size="15" class="text-vert" />
+              <!-- Conteneur en ligne (span) -->
               <span class="mini-title">Identifiant Numérique Sécurisé</span>
             </div>
 
+            <!-- Conteneur de bloc (div) -->
             <div class="qr-card-body">
+              <!-- Conteneur de bloc (div) -->
               <div class="qr-visual-wrapper">
+                <!-- Image -->
                 <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" alt="QR Code d'Urgence" class="qr-image" />
+                <!-- Conteneur de bloc (div) -->
                 <div v-else class="qr-placeholder">
                   <QrCode :size="48" class="text-muted" />
                 </div>
               </div>
 
+              <!-- Conteneur de bloc (div) -->
               <div class="qr-meta-info">
+                <!-- Conteneur de bloc (div) -->
                 <div class="qr-code-string-box" @click="copyQrText(selectedDossier?.codeQrSecurise || '')" title="Cliquer pour copier l'identifiant">
+                  <!-- Conteneur en ligne (span) -->
                   <span class="qr-string">{{ selectedDossier?.codeQrSecurise || ('QR-PT-' + selectedPatient?.id.substring(0, 8).toUpperCase()) }}</span>
+                  <!-- Bouton cliquable -->
                   <button class="qr-copy-btn" type="button">
                     <Check v-if="copiedQr" :size="13" class="text-vert" />
                     <Copy v-else :size="13" />
                   </button>
                 </div>
+                <!-- Conteneur de bloc (div) -->
                 <div class="nfc-tag-indicator">
+                  <!-- Conteneur en ligne (span) -->
                   <span class="text-muted text-xs">Puce NFC :</span>
                   <code class="nfc-code">{{ selectedPatient?.nfcId || 'Non assignée' }}</code>
                 </div>
+                <!-- Bouton cliquable -->
                 <button class="btn btn-outline btn-sm w-full test-scan-btn" @click="openQrScanSimulation">
                   <Scan :size="13" />
+                  <!-- Conteneur en ligne (span) -->
                   <span>Tester le Scan QR (Vue Soignant)</span>
                 </button>
               </div>
@@ -576,14 +792,19 @@ const handleSearch = () => {
 
         <!-- Patient Dossier Access History & Deontological Reports -->
         <div class="access-audit-card">
+          <!-- Conteneur de bloc (div) -->
           <div class="card-header-mini">
             <Clock :size="15" class="text-vert" />
+            <!-- Conteneur en ligne (span) -->
             <span class="mini-title">Journal des Accès au Dossier & Traçabilité des Signalements (RM029)</span>
           </div>
 
+          <!-- Conteneur de bloc (div) -->
           <div class="access-logs-table-wrapper">
+            <!-- Élément de tableau de données -->
             <table class="access-table">
               <thead>
+                <!-- Élément de tableau de données -->
                 <tr>
                   <th>Praticien / Soignant</th>
                   <th>Spécialité & Hôpital</th>
@@ -593,39 +814,58 @@ const handleSearch = () => {
                 </tr>
               </thead>
               <tbody>
+                <!-- Élément de tableau de données -->
                 <tr v-for="log in patientAccessLogs" :key="log.id" :class="{'row-reported': log.statut === 'SIGNALE_ABUSIF'}">
+                  <!-- Élément de tableau de données -->
                   <td>
+                    <!-- Conteneur de bloc (div) -->
                     <div class="font-bold">{{ log.medecin }}</div>
                   </td>
+                  <!-- Élément de tableau de données -->
                   <td>
+                    <!-- Conteneur de bloc (div) -->
                     <div>{{ log.specialite }}</div>
+                    <!-- Conteneur de bloc (div) -->
                     <div class="text-muted text-xs">{{ log.hopital }}</div>
                   </td>
+                  <!-- Élément de tableau de données -->
                   <td class="text-xs">{{ log.date }}</td>
+                  <!-- Élément de tableau de données -->
                   <td>
+                    <!-- Conteneur en ligne (span) -->
                     <span v-if="log.isUrgence" class="badge badge-urgence">
                       <AlertOctagon :size="11" /> Mode Bris de Glace
                     </span>
+                    <!-- Conteneur en ligne (span) -->
                     <span v-else class="badge badge-normal">
                       <CheckCircle2 :size="11" /> Consultation Ordinaire
                     </span>
                   </td>
+                  <!-- Élément de tableau de données -->
                   <td>
+                    <!-- Conteneur de bloc (div) -->
                     <div v-if="log.statut === 'SIGNALE_ABUSIF'" class="reported-badge-box">
+                      <!-- Conteneur en ligne (span) -->
                       <span class="badge badge-signalement">
                         <Flag :size="11" /> SIGNALÉ ABUSIF PAR LE PATIENT
                       </span>
+                      <!-- Conteneur de bloc (div) -->
                       <div v-if="log.motifSignalement" class="reported-reason">
                         Motif : « {{ log.motifSignalement }} »
                       </div>
+                      <!-- Conteneur en ligne (span) -->
                       <span class="admin-action-note">Dossier sous enquête transmise à l'ONMS et à l'Admin</span>
                     </div>
+                    <!-- Conteneur de bloc (div) -->
                     <div v-else-if="log.statut === 'CONFIRME_PAR_PATIENT'">
+                      <!-- Conteneur en ligne (span) -->
                       <span class="badge badge-confirmed">
                         <CheckCircle2 :size="11" /> Urgence confirmée par le patient
                       </span>
                     </div>
+                    <!-- Conteneur de bloc (div) -->
                     <div v-else>
+                      <!-- Conteneur en ligne (span) -->
                       <span class="badge badge-pending">
                         <Clock :size="11" /> En attente de confirmation du patient
                       </span>
@@ -639,30 +879,40 @@ const handleSearch = () => {
 
         <!-- Full-Width Medical Secrecy & Deontology Policy Banner -->
         <div class="medical-secrecy-card">
+          <!-- Conteneur de bloc (div) -->
           <div class="secrecy-card-header">
+            <!-- Conteneur de bloc (div) -->
             <div class="secrecy-title-box">
               <ShieldAlert :size="17" class="text-vert" />
               <h4 class="secrecy-title">Secret Médical Absolu & Confidentialité des Données (Loi CDP n° 2008-12)</h4>
             </div>
+            <!-- Conteneur en ligne (span) -->
             <span class="secrecy-pill">Données Cliniques Verrouillées</span>
           </div>
 
+          <!-- Conteneur de bloc (div) -->
           <div class="secrecy-rules-grid">
+            <!-- Conteneur de bloc (div) -->
             <div class="rule-box">
+              <!-- Conteneur de bloc (div) -->
               <div class="rule-title">
                 <Lock :size="14" class="text-danger" />
                 <strong>Règle Administrateur Plateforme :</strong>
               </div>
+              <!-- Paragraphe de texte -->
               <p class="rule-desc">
                 Les administrateurs gèrent les comptes utilisateurs et l'infrastructure technique, mais <strong>n'ont aucun droit d'accès aux données médicales cliniques</strong> (antécédents, diagnostics, allergies, ordonnances et comptes-rendus de consultation).
               </p>
             </div>
 
+            <!-- Conteneur de bloc (div) -->
             <div class="rule-box">
+              <!-- Conteneur de bloc (div) -->
               <div class="rule-title">
                 <AlertOctagon :size="14" class="text-warning" />
                 <strong>Règle Médecin & Protocole d'Urgence :</strong>
               </div>
+              <!-- Paragraphe de texte -->
               <p class="rule-desc">
                 De base, <strong>aucun praticien n'a accès au dossier</strong> sans rendez-vous confirmé ou consentement. Lors du scan du QR code, le système demande obligatoirement une <strong>déclaration d'urgence médicale (« Mode Bris de Glace »)</strong> avant tout accès de secours, avec traçabilité immuable dans l'audit log (RM029).
               </p>
@@ -672,11 +922,15 @@ const handleSearch = () => {
       </div>
 
       <template #footer>
+        <!-- Conteneur de bloc (div) -->
         <div class="modal-footer-actions">
+          <!-- Bouton cliquable -->
           <button class="btn btn-secondary btn-sm" @click="printDossier" title="Imprimer la fiche administrative patient">
             <Printer :size="14" />
+            <!-- Conteneur en ligne (span) -->
             <span>Imprimer la Fiche Administrative</span>
           </button>
+          <!-- Bouton cliquable -->
           <button class="btn btn-primary btn-sm" @click="isPatientModalOpen = false">Fermer</button>
         </div>
       </template>
@@ -981,6 +1235,7 @@ const handleSearch = () => {
       </div>
 
       <template #footer>
+        <!-- Bouton cliquable -->
         <button class="btn btn-primary btn-sm" @click="isScanSimModalOpen = false">Fermer</button>
       </template>
     </Modal>
@@ -988,12 +1243,14 @@ const handleSearch = () => {
 </template>
 
 <style scoped>
+/* Sélecteur de classe CSS */
 .patient-profile-cell {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
+/* Sélecteur de classe CSS */
 .patient-avatar-circle {
   width: 36px;
   height: 36px;
@@ -1010,40 +1267,47 @@ const handleSearch = () => {
   letter-spacing: 0.5px;
 }
 
+/* Sélecteur de classe CSS */
 .patient-info-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
+/* Sélecteur de classe CSS */
 .patient-full-name {
   font-weight: 700;
   font-size: 0.88rem;
   color: #090D14;
 }
 
+/* Sélecteur de classe CSS */
 .patient-meta-row {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
+/* Sélecteur de classe CSS */
 .patient-tel-tag {
   font-size: 0.74rem;
   color: var(--text-muted);
 }
 
+/* Sélecteur de classe CSS */
 .contact-urgence-cell {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
+/* Sélecteur de classe CSS */
 .contact-urgence-nom {
   font-size: 0.85rem;
   color: #090D14;
 }
 
+/* Sélecteur de classe CSS */
 .contact-lien-tag {
   color: var(--text-muted);
   font-size: 0.78rem;
@@ -1051,12 +1315,14 @@ const handleSearch = () => {
   margin-left: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .patient-id-badge {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
+/* Sélecteur de classe CSS */
 .id-tag {
   font-family: monospace;
   font-weight: 700;
@@ -1064,26 +1330,32 @@ const handleSearch = () => {
   font-size: 0.75rem;
 }
 
+/* Sélecteur de classe CSS */
 .text-xs {
   font-size: 0.72rem;
 }
 
+/* Sélecteur de classe CSS */
 .text-sm {
   font-size: 0.8rem;
 }
 
+/* Sélecteur de classe CSS */
 .text-danger {
   color: var(--danger);
 }
 
+/* Sélecteur de classe CSS */
 .text-warning {
   color: var(--warning);
 }
 
+/* Sélecteur de classe CSS */
 .text-primary {
   color: var(--primary);
 }
 
+/* Sélecteur de classe CSS */
 .record-counter {
   background: #F8FAFC;
   padding: 5px 12px;
@@ -1094,6 +1366,7 @@ const handleSearch = () => {
   border: 1px solid var(--border-color);
 }
 
+/* Sélecteur de classe CSS */
 .dossier-details-wrapper {
   display: flex;
   flex-direction: column;
@@ -1112,12 +1385,14 @@ const handleSearch = () => {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Sélecteur de classe CSS */
 .hero-left {
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
+/* Sélecteur de classe CSS */
 .hero-avatar {
   width: 48px;
   height: 48px;
@@ -1132,12 +1407,14 @@ const handleSearch = () => {
   flex-shrink: 0;
 }
 
+/* Sélecteur de classe CSS */
 .hero-identity {
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 
+/* Sélecteur de classe CSS */
 .hero-name {
   font-size: 1.15rem;
   font-weight: 800;
@@ -1145,6 +1422,7 @@ const handleSearch = () => {
   letter-spacing: -0.2px;
 }
 
+/* Sélecteur de classe CSS */
 .hero-meta {
   display: flex;
   align-items: center;
@@ -1154,6 +1432,7 @@ const handleSearch = () => {
   flex-wrap: wrap;
 }
 
+/* Sélecteur de classe CSS */
 .hero-id {
   font-family: monospace;
   background: rgba(255, 255, 255, 0.1);
@@ -1163,12 +1442,14 @@ const handleSearch = () => {
   font-weight: 600;
 }
 
+/* Sélecteur de classe CSS */
 .hero-meta-item {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .hero-badges {
   display: flex;
   flex-direction: column;
@@ -1176,6 +1457,7 @@ const handleSearch = () => {
   gap: 6px;
 }
 
+/* Sélecteur de classe CSS */
 .badge-tele {
   background: rgba(13, 124, 102, 0.2);
   color: #2DD4BF;
@@ -1196,6 +1478,7 @@ const handleSearch = () => {
   gap: 14px;
 }
 
+/* Sélecteur de classe CSS */
 .passport-card {
   background: #FFFFFF;
   border: 1px solid var(--border-color);
@@ -1205,6 +1488,7 @@ const handleSearch = () => {
   flex-direction: column;
 }
 
+/* Sélecteur de classe CSS */
 .card-header-mini {
   display: flex;
   align-items: center;
@@ -1217,6 +1501,7 @@ const handleSearch = () => {
   border-bottom: 1px solid #F1F5F9;
 }
 
+/* Sélecteur de classe CSS */
 .card-header-mini .mini-title {
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1230,12 +1515,14 @@ const handleSearch = () => {
   gap: 12px;
 }
 
+/* Sélecteur de classe CSS */
 .essential-item {
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 
+/* Sélecteur de classe CSS */
 .essential-item .item-label {
   font-size: 0.7rem;
   font-weight: 700;
@@ -1244,6 +1531,7 @@ const handleSearch = () => {
   letter-spacing: 0.4px;
 }
 
+/* Sélecteur de classe CSS */
 .badge-role {
   background: rgba(255, 255, 255, 0.12);
   color: #F8FAFC;
@@ -1266,13 +1554,16 @@ const handleSearch = () => {
   border: 1px solid #E2E8F0;
 }
 
+/* Sélecteur de classe CSS */
 .admin-data-col {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
+/* Sélecteur de classe CSS */
 .admin-data-col .item-label,
+/* Sélecteur de classe CSS */
 .essential-item .item-label {
   font-size: 0.68rem;
   font-weight: 700;
@@ -1281,12 +1572,14 @@ const handleSearch = () => {
   letter-spacing: 0.4px;
 }
 
+/* Sélecteur de classe CSS */
 .admin-data-col .item-val {
   font-size: 0.82rem;
   font-weight: 600;
   color: #090D14;
 }
 
+/* Sélecteur de classe CSS */
 .contact-highlight {
   background: #F8FAFC;
   padding: 10px 12px;
@@ -1297,17 +1590,20 @@ const handleSearch = () => {
   gap: 3px;
 }
 
+/* Sélecteur de classe CSS */
 .contact-name {
   font-size: 0.86rem;
   color: #090D14;
 }
 
+/* Sélecteur de classe CSS */
 .contact-lien {
   color: var(--text-muted);
   font-size: 0.76rem;
   margin-left: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .contact-tel {
   display: inline-flex;
   align-items: center;
@@ -1324,6 +1620,7 @@ const handleSearch = () => {
   gap: 6px;
 }
 
+/* Sélecteur de classe CSS */
 .family-member-chip {
   background: #F1F5F9;
   border: 1px solid #CBD5E1;
@@ -1335,11 +1632,13 @@ const handleSearch = () => {
   font-size: 0.78rem;
 }
 
+/* Sélecteur de classe CSS */
 .family-name {
   color: #090D14;
   font-weight: 700;
 }
 
+/* Sélecteur de classe CSS */
 .family-relation {
   color: var(--text-muted);
   font-size: 0.72rem;
@@ -1354,6 +1653,7 @@ const handleSearch = () => {
   text-align: center;
 }
 
+/* Sélecteur de classe CSS */
 .qr-card-body {
   display: flex;
   flex-direction: column;
@@ -1362,6 +1662,7 @@ const handleSearch = () => {
   width: 100%;
 }
 
+/* Sélecteur de classe CSS */
 .qr-visual-wrapper {
   background: #FFFFFF;
   padding: 8px;
@@ -1372,6 +1673,7 @@ const handleSearch = () => {
   justify-content: center;
 }
 
+/* Sélecteur de classe CSS */
 .qr-image {
   width: 130px;
   height: 130px;
@@ -1379,6 +1681,7 @@ const handleSearch = () => {
   border-radius: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .qr-placeholder {
   width: 130px;
   height: 130px;
@@ -1388,6 +1691,7 @@ const handleSearch = () => {
   background: #F8FAFC;
 }
 
+/* Sélecteur de classe CSS */
 .qr-meta-info {
   width: 100%;
   display: flex;
@@ -1396,6 +1700,7 @@ const handleSearch = () => {
   align-items: center;
 }
 
+/* Sélecteur de classe CSS */
 .qr-code-string-box {
   background: #090D14;
   color: #FFFFFF;
@@ -1412,16 +1717,19 @@ const handleSearch = () => {
   transition: background 0.15s ease;
 }
 
+/* Sélecteur de classe CSS */
 .qr-code-string-box:hover {
   background: #0D7C66;
 }
 
+/* Sélecteur de classe CSS */
 .qr-string {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Sélecteur de classe CSS */
 .qr-copy-btn {
   background: transparent;
   border: none;
@@ -1432,6 +1740,7 @@ const handleSearch = () => {
   align-items: center;
 }
 
+/* Sélecteur de classe CSS */
 .nfc-tag-indicator {
   display: flex;
   align-items: center;
@@ -1439,6 +1748,7 @@ const handleSearch = () => {
   font-size: 0.75rem;
 }
 
+/* Sélecteur de classe CSS */
 .nfc-code {
   font-family: monospace;
   background: #F1F5F9;
@@ -1449,6 +1759,7 @@ const handleSearch = () => {
   border: 1px solid #E2E8F0;
 }
 
+/* Sélecteur de classe CSS */
 .test-scan-btn {
   font-size: 0.76rem;
   gap: 6px;
@@ -1466,6 +1777,7 @@ const handleSearch = () => {
   gap: 10px;
 }
 
+/* Sélecteur de classe CSS */
 .secrecy-card-header {
   display: flex;
   justify-content: space-between;
@@ -1476,12 +1788,14 @@ const handleSearch = () => {
   border-bottom: 1px solid #F1F5F9;
 }
 
+/* Sélecteur de classe CSS */
 .secrecy-title-box {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+/* Sélecteur de classe CSS */
 .secrecy-title {
   font-size: 0.85rem;
   font-weight: 800;
@@ -1489,6 +1803,7 @@ const handleSearch = () => {
   margin: 0;
 }
 
+/* Sélecteur de classe CSS */
 .secrecy-pill {
   font-size: 0.68rem;
   font-weight: 700;
@@ -1501,12 +1816,14 @@ const handleSearch = () => {
   letter-spacing: 0.5px;
 }
 
+/* Sélecteur de classe CSS */
 .secrecy-rules-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
+/* Sélecteur de classe CSS */
 .rule-box {
   background: #F8FAFC;
   padding: 10px 12px;
@@ -1517,6 +1834,7 @@ const handleSearch = () => {
   gap: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .rule-title {
   display: flex;
   align-items: center;
@@ -1525,6 +1843,7 @@ const handleSearch = () => {
   color: #090D14;
 }
 
+/* Sélecteur de classe CSS */
 .rule-desc {
   font-size: 0.74rem;
   color: #475569;
@@ -1539,6 +1858,7 @@ const handleSearch = () => {
   gap: 16px;
 }
 
+/* Sélecteur de classe CSS */
 .sim-context-banner {
   display: flex;
   justify-content: space-between;
@@ -1550,13 +1870,16 @@ const handleSearch = () => {
   font-size: 0.8rem;
 }
 
+/* Sélecteur de classe CSS */
 .sim-context-left,
+/* Sélecteur de classe CSS */
 .sim-context-right {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
+/* Sélecteur de classe CSS */
 .qr-token-chip {
   font-family: monospace;
   background: #090D14;
@@ -1567,6 +1890,7 @@ const handleSearch = () => {
   font-size: 0.75rem;
 }
 
+/* Sélecteur de classe CSS */
 .sim-question-panel {
   display: flex;
   flex-direction: column;
@@ -1579,6 +1903,7 @@ const handleSearch = () => {
   border-radius: var(--radius-md);
 }
 
+/* Sélecteur de classe CSS */
 .sim-icon-circle {
   width: 54px;
   height: 54px;
@@ -1588,11 +1913,13 @@ const handleSearch = () => {
   justify-content: center;
 }
 
+/* Sélecteur de classe CSS */
 .warning-circle {
   background: #FEF9C3;
   border: 2px solid #FDE047;
 }
 
+/* Sélecteur de classe CSS */
 .sim-question-title {
   font-size: 1.05rem;
   font-weight: 800;
@@ -1600,6 +1927,7 @@ const handleSearch = () => {
   margin: 0;
 }
 
+/* Sélecteur de classe CSS */
 .sim-question-text {
   font-size: 0.82rem;
   color: #475569;
@@ -1608,6 +1936,7 @@ const handleSearch = () => {
   line-height: 1.45;
 }
 
+/* Sélecteur de classe CSS */
 .sim-solemn-question {
   background: #FFFFFF;
   border: 1px solid #FDE047;
@@ -1619,6 +1948,7 @@ const handleSearch = () => {
   line-height: 1.45;
 }
 
+/* Sélecteur de classe CSS */
 .sim-actions-row {
   display: flex;
   gap: 12px;
@@ -1626,6 +1956,7 @@ const handleSearch = () => {
   margin-top: 6px;
 }
 
+/* Sélecteur de classe CSS */
 .sim-actions-row button {
   display: flex;
   align-items: center;
@@ -1636,6 +1967,7 @@ const handleSearch = () => {
   font-weight: 700;
 }
 
+/* Sélecteur de classe CSS */
 .flex-1 {
   flex: 1;
 }
@@ -1649,28 +1981,33 @@ const handleSearch = () => {
   gap: 12px;
 }
 
+/* Sélecteur de classe CSS */
 .panel-denied {
   background: #FEF2F2;
   border: 1px solid #FECACA;
 }
 
+/* Sélecteur de classe CSS */
 .panel-granted {
   background: #F0FDF4;
   border: 1px solid #BBF7D0;
 }
 
+/* Sélecteur de classe CSS */
 .sim-result-header {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
+/* Sélecteur de classe CSS */
 .sim-result-title {
   font-size: 0.96rem;
   font-weight: 800;
   margin: 0;
 }
 
+/* Sélecteur de classe CSS */
 .sim-result-desc {
   font-size: 0.8rem;
   color: #334155;
@@ -1678,6 +2015,7 @@ const handleSearch = () => {
   margin: 0;
 }
 
+/* Sélecteur de classe CSS */
 .sim-allowed-contacts {
   background: #FFFFFF;
   border: 1px solid #FEE2E2;
@@ -1689,6 +2027,7 @@ const handleSearch = () => {
   font-size: 0.8rem;
 }
 
+/* Sélecteur de classe CSS */
 .allowed-title {
   font-weight: 700;
   color: #991B1B;
@@ -1697,12 +2036,14 @@ const handleSearch = () => {
   letter-spacing: 0.4px;
 }
 
+/* Sélecteur de classe CSS */
 .allowed-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+/* Sélecteur de classe CSS */
 .sim-audit-alert {
   background: #FFFFFF;
   border: 1px solid #DCFCE7;
@@ -1714,6 +2055,7 @@ const handleSearch = () => {
   gap: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .audit-alert-top {
   display: flex;
   align-items: center;
@@ -1722,6 +2064,7 @@ const handleSearch = () => {
   color: #0D7C66;
 }
 
+/* Sélecteur de classe CSS */
 .audit-alert-text {
   font-size: 0.74rem;
   color: #334155;
@@ -1729,6 +2072,7 @@ const handleSearch = () => {
   line-height: 1.4;
 }
 
+/* Sélecteur de classe CSS */
 .audit-alert-text code {
   background: #F1F5F9;
   padding: 1px 5px;
@@ -1737,6 +2081,7 @@ const handleSearch = () => {
   color: #090D14;
 }
 
+/* Sélecteur de classe CSS */
 .sim-unlocked-data {
   background: #FFFFFF;
   border: 1px solid #DCFCE7;
@@ -1747,6 +2092,7 @@ const handleSearch = () => {
   gap: 6px;
 }
 
+/* Sélecteur de classe CSS */
 .unlocked-title {
   font-weight: 700;
   color: #166534;
@@ -1755,6 +2101,7 @@ const handleSearch = () => {
   letter-spacing: 0.4px;
 }
 
+/* Sélecteur de classe CSS */
 .unlocked-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1762,27 +2109,32 @@ const handleSearch = () => {
   font-size: 0.78rem;
 }
 
+/* Sélecteur de classe CSS */
 .unlocked-item {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
+/* Sélecteur de classe CSS */
 .u-label {
   color: var(--text-muted);
   font-size: 0.7rem;
 }
 
+/* Sélecteur de classe CSS */
 .u-val {
   font-weight: 700;
 }
 
+/* Sélecteur de classe CSS */
 .sim-panel-footer {
   display: flex;
   justify-content: flex-end;
   margin-top: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .modal-footer-actions {
   display: flex;
   justify-content: space-between;
@@ -1800,11 +2152,13 @@ const handleSearch = () => {
   flex-direction: column;
 }
 
+/* Sélecteur de classe CSS */
 .access-logs-table-wrapper {
   overflow-x: auto;
   margin-top: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .access-table {
   width: 100%;
   border-collapse: collapse;
@@ -1812,6 +2166,7 @@ const handleSearch = () => {
   text-align: left;
 }
 
+/* Sélecteur de classe CSS */
 .access-table th {
   background: #F8FAFC;
   padding: 8px 10px;
@@ -1823,21 +2178,25 @@ const handleSearch = () => {
   letter-spacing: 0.4px;
 }
 
+/* Sélecteur de classe CSS */
 .access-table td {
   padding: 10px 10px;
   border-bottom: 1px solid #F1F5F9;
   vertical-align: middle;
 }
 
+/* Sélecteur de classe CSS */
 .access-table tbody tr:hover {
   background: #FAFAFA;
 }
 
+/* Sélecteur de classe CSS */
 .access-table tr.row-reported {
   background: #FEF2F2 !important;
   border-left: 3px solid #EF4444;
 }
 
+/* Sélecteur de classe CSS */
 .badge-urgence {
   background: rgba(239, 68, 68, 0.12);
   color: #DC2626;
@@ -1851,6 +2210,7 @@ const handleSearch = () => {
   gap: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .badge-normal {
   background: rgba(13, 124, 102, 0.12);
   color: #0D7C66;
@@ -1864,12 +2224,14 @@ const handleSearch = () => {
   gap: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .reported-badge-box {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .badge-signalement {
   background: #EF4444;
   color: #FFFFFF;
@@ -1884,6 +2246,7 @@ const handleSearch = () => {
   width: fit-content;
 }
 
+/* Sélecteur de classe CSS */
 .reported-reason {
   font-size: 0.72rem;
   font-style: italic;
@@ -1894,12 +2257,14 @@ const handleSearch = () => {
   line-height: 1.35;
 }
 
+/* Sélecteur de classe CSS */
 .admin-action-note {
   font-size: 0.68rem;
   font-weight: 700;
   color: #B91C1C;
 }
 
+/* Sélecteur de classe CSS */
 .badge-confirmed {
   background: rgba(13, 124, 102, 0.12);
   color: #0D7C66;
@@ -1912,6 +2277,7 @@ const handleSearch = () => {
   gap: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .badge-pending {
   background: rgba(245, 158, 11, 0.12);
   color: #D97706;
@@ -1931,6 +2297,7 @@ const handleSearch = () => {
   gap: 12px;
 }
 
+/* Sélecteur de classe CSS */
 .sim-tabs-nav {
   display: flex;
   gap: 6px;
@@ -1939,6 +2306,7 @@ const handleSearch = () => {
   border-radius: 8px;
 }
 
+/* Sélecteur de classe CSS */
 .sim-tab-btn {
   flex: 1;
   display: flex;
@@ -1957,10 +2325,12 @@ const handleSearch = () => {
   transition: all 0.2s ease;
 }
 
+/* Sélecteur de classe CSS */
 .sim-tab-btn:hover {
   color: #090D14;
 }
 
+/* Sélecteur de classe CSS */
 .sim-tab-btn.active {
   background: #FFFFFF;
   color: #090D14;
@@ -1968,6 +2338,7 @@ const handleSearch = () => {
   border: 1px solid var(--border-color);
 }
 
+/* Sélecteur de classe CSS */
 .tab-pulse-dot {
   width: 8px;
   height: 8px;
@@ -1976,6 +2347,7 @@ const handleSearch = () => {
   display: inline-block;
 }
 
+/* Sélecteur de classe CSS */
 .sim-notice-sent-box {
   background: #ECFDF5;
   border: 1px solid #A7F3D0;
@@ -1989,6 +2361,7 @@ const handleSearch = () => {
   line-height: 1.45;
 }
 
+/* Sélecteur de classe CSS */
 .patient-cta-box {
   background: #F8FAFC;
   border: 1px dashed #CBD5E1;
@@ -2001,6 +2374,7 @@ const handleSearch = () => {
   align-items: center;
 }
 
+/* Sélecteur de classe CSS */
 .cta-desc {
   font-size: 0.78rem;
   color: #334155;
@@ -2020,6 +2394,7 @@ const handleSearch = () => {
   gap: 12px;
 }
 
+/* Sélecteur de classe CSS */
 .phone-top-bar {
   display: flex;
   justify-content: space-between;
@@ -2030,6 +2405,7 @@ const handleSearch = () => {
   font-family: monospace;
 }
 
+/* Sélecteur de classe CSS */
 .phone-notif-card {
   background: #1E293B;
   border: 1px solid rgba(239, 68, 68, 0.4);
@@ -2041,12 +2417,14 @@ const handleSearch = () => {
   gap: 8px;
 }
 
+/* Sélecteur de classe CSS */
 .notif-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+/* Sélecteur de classe CSS */
 .notif-sender {
   display: flex;
   align-items: center;
@@ -2055,6 +2433,7 @@ const handleSearch = () => {
   color: #F87171;
 }
 
+/* Sélecteur de classe CSS */
 .notif-badge {
   background: #EF4444;
   color: #FFFFFF;
@@ -2066,6 +2445,7 @@ const handleSearch = () => {
   letter-spacing: 0.4px;
 }
 
+/* Sélecteur de classe CSS */
 .notif-msg {
   font-size: 0.82rem;
   color: #F1F5F9;
@@ -2073,6 +2453,7 @@ const handleSearch = () => {
   line-height: 1.45;
 }
 
+/* Sélecteur de classe CSS */
 .notif-declared-reason {
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -2085,6 +2466,7 @@ const handleSearch = () => {
   gap: 6px;
 }
 
+/* Sélecteur de classe CSS */
 .patient-question-card {
   background: #1E293B;
   border: 1px solid #334155;
@@ -2095,6 +2477,7 @@ const handleSearch = () => {
   gap: 10px;
 }
 
+/* Sélecteur de classe CSS */
 .question-h5 {
   font-size: 0.86rem;
   font-weight: 700;
@@ -2102,6 +2485,7 @@ const handleSearch = () => {
   margin: 0;
 }
 
+/* Sélecteur de classe CSS */
 .question-sub {
   font-size: 0.78rem;
   color: #CBD5E1;
@@ -2109,11 +2493,13 @@ const handleSearch = () => {
   line-height: 1.4;
 }
 
+/* Sélecteur de classe CSS */
 .patient-action-buttons {
   display: flex;
   gap: 8px;
 }
 
+/* Sélecteur de classe CSS */
 .btn-outline-success {
   background: transparent;
   color: #0D7C66;
@@ -2130,11 +2516,13 @@ const handleSearch = () => {
   transition: all 0.2s ease;
 }
 
+/* Sélecteur de classe CSS */
 .btn-outline-success:hover {
   background: #0D7C66;
   color: #FFFFFF;
 }
 
+/* Sélecteur de classe CSS */
 .report-form-box {
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -2145,6 +2533,7 @@ const handleSearch = () => {
   gap: 8px;
 }
 
+/* Sélecteur de classe CSS */
 .report-warning-header {
   display: flex;
   align-items: center;
@@ -2154,11 +2543,13 @@ const handleSearch = () => {
   font-size: 0.8rem;
 }
 
+/* Sélecteur de classe CSS */
 .report-warning-header h6 {
   margin: 0;
   font-size: 0.8rem;
 }
 
+/* Sélecteur de classe CSS */
 .report-expl {
   font-size: 0.72rem;
   color: #CBD5E1;
@@ -2166,12 +2557,14 @@ const handleSearch = () => {
   margin: 0;
 }
 
+/* Sélecteur de classe CSS */
 .report-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
 
+/* Sélecteur de classe CSS */
 .confirmed-box {
   background: rgba(13, 124, 102, 0.15);
   border: 1px solid rgba(13, 124, 102, 0.3);
@@ -2182,6 +2575,7 @@ const handleSearch = () => {
   gap: 10px;
 }
 
+/* Sélecteur de classe CSS */
 .reported-success-card {
   background: rgba(239, 68, 68, 0.12);
   border: 1px solid rgba(239, 68, 68, 0.4);
@@ -2192,6 +2586,7 @@ const handleSearch = () => {
   gap: 10px;
 }
 
+/* Sélecteur de classe CSS */
 .reported-header {
   display: flex;
   align-items: center;
@@ -2201,18 +2596,21 @@ const handleSearch = () => {
   font-weight: 800;
 }
 
+/* Sélecteur de classe CSS */
 .reported-desc {
   font-size: 0.74rem;
   color: #E2E8F0;
   margin: 0;
 }
 
+/* Sélecteur de classe CSS */
 .dispatch-receipts {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
+/* Sélecteur de classe CSS */
 .receipt-item {
   border-radius: 6px;
   padding: 8px 10px;
@@ -2222,18 +2620,21 @@ const handleSearch = () => {
   gap: 4px;
 }
 
+/* Sélecteur de classe CSS */
 .receipt-doctor {
   background: #020617;
   border-left: 3px solid #38BDF8;
   color: #E2E8F0;
 }
 
+/* Sélecteur de classe CSS */
 .receipt-admin {
   background: #020617;
   border-left: 3px solid #F59E0B;
   color: #E2E8F0;
 }
 
+/* Sélecteur de classe CSS */
 .receipt-dest {
   display: flex;
   align-items: center;
@@ -2242,12 +2643,14 @@ const handleSearch = () => {
   font-weight: 700;
 }
 
+/* Sélecteur de classe CSS */
 .receipt-msg {
   font-style: italic;
   color: #94A3B8;
   line-height: 1.4;
 }
 
+/* Sélecteur de classe CSS */
 .ml-2 {
   margin-left: 8px;
 }

@@ -1,26 +1,42 @@
 <script setup lang="ts">
+// Importation du module ou composant
 import { ref } from 'vue'
+// Importation du module ou composant
 import { useRouter } from 'vue-router'
+// Importation du module ou composant
 import { authService } from '../services/auth.service'
+// Importation du module ou composant
 import { useToast } from '../composables/useToast'
+// Importation du module ou composant
 import { Mail, Lock, Eye, EyeOff } from 'lucide-vue-next'
 
+// Déclaration de variable
 const router = useRouter()
+// Déclaration de variable
 const toast = useToast()
 
+// Déclaration de variable
 const telephone = ref('770000000')
+// Déclaration de variable
 const password = ref('monpasse')
+// Déclaration de variable
 const showPassword = ref(false)
+// Déclaration de variable
 const loading = ref(false)
+// Déclaration de variable
 const errorMessage = ref('')
+// Déclaration de variable
 const isShaking = ref(false)
 
+// Déclaration de variable
 const handleLogin = async () => {
   errorMessage.value = ''
   loading.value = true
   isShaking.value = false
 
+  // Bloc d'essai pour gérer les erreurs
   try {
+    // Déclaration de variable
     const user = await authService.login(telephone.value, password.value)
     toast.success(`Authentification réussie. Bienvenue, ${user.firstName} ${user.lastName}.`)
     router.push('/')
@@ -35,6 +51,7 @@ const handleLogin = async () => {
   }
 }
 
+// Déclaration de variable
 const fillAdminDemo = () => {
   telephone.value = '770000000'
   password.value = 'monpasse'
@@ -42,11 +59,15 @@ const fillAdminDemo = () => {
 </script>
 
 <template>
+  <!-- Conteneur de bloc (div) -->
   <div class="scaffold">
+    <!-- Conteneur de bloc (div) -->
     <div class="login-container">
+      <!-- Conteneur de bloc (div) -->
       <div class="login-card" :class="{ 'shake-anim': isShaking }">
         <!-- LOGO -->
         <div class="logo-wrapper">
+          <!-- Image -->
           <img
             src="@/assets/diamyaraam.png"
             alt="Diam-Yaraam"
@@ -74,9 +95,11 @@ const fillAdminDemo = () => {
 
           <!-- MOT DE PASSE -->
           <div class="input-group">
+            <!-- Conteneur en ligne (span) -->
             <span class="prefix">
               <Lock :size="18" class="icon-lock" />
             </span>
+            <!-- Champ de saisie utilisateur -->
             <input
               :type="showPassword ? 'text' : 'password'"
               v-model="password"
@@ -85,6 +108,7 @@ const fillAdminDemo = () => {
               autocomplete="current-password"
               class="input-field"
             />
+            <!-- Bouton cliquable -->
             <button
               type="button"
               class="suffix-btn"
@@ -98,7 +122,9 @@ const fillAdminDemo = () => {
 
           <!-- BUTTON -->
           <button type="submit" class="btn-submit" :disabled="loading">
+            <!-- Conteneur en ligne (span) -->
             <span v-if="loading" class="spinner"></span>
+            <!-- Conteneur en ligne (span) -->
             <span v-else>Connexion</span>
           </button>
 
@@ -115,6 +141,7 @@ const fillAdminDemo = () => {
 </template>
 
 <style scoped>
+/* Sélecteur de classe CSS */
 .scaffold {
   min-height: 100vh;
   width: 100%;
@@ -125,6 +152,7 @@ const fillAdminDemo = () => {
   padding: 24px;
 }
 
+/* Sélecteur de classe CSS */
 .login-container {
   width: 100%;
   max-width: 900px;
@@ -132,6 +160,7 @@ const fillAdminDemo = () => {
   justify-content: center;
 }
 
+/* Sélecteur de classe CSS */
 .login-card {
   background: #F4F2F7;
   border-radius: 16px;
@@ -143,6 +172,7 @@ const fillAdminDemo = () => {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
+/* Sélecteur de classe CSS */
 .shake-anim {
   animation: shake 0.5s ease-in-out;
 }
@@ -155,18 +185,21 @@ const fillAdminDemo = () => {
   80% { transform: translateX(10px); }
 }
 
+/* Sélecteur de classe CSS */
 .logo-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
+/* Sélecteur de classe CSS */
 .logo {
   width: 220px;
   height: auto;
   object-fit: contain;
 }
 
+/* Sélecteur de classe CSS */
 .brand-subtitle {
   color: #0D7C66;
   font-size: 15px;
@@ -175,6 +208,7 @@ const fillAdminDemo = () => {
   margin: 10px 0 32px 0;
 }
 
+/* Sélecteur de classe CSS */
 .form {
   width: 100%;
   display: flex;
@@ -182,6 +216,7 @@ const fillAdminDemo = () => {
   gap: 16px;
 }
 
+/* Sélecteur de classe CSS */
 .input-group {
   position: relative;
   display: flex;
@@ -191,6 +226,7 @@ const fillAdminDemo = () => {
   height: 52px;
 }
 
+/* Sélecteur de classe CSS */
 .input-group-tel {
   width: 100%;
   height: 52px;
@@ -237,10 +273,12 @@ const fillAdminDemo = () => {
   color: #0D7C66;
 }
 
+/* Sélecteur de classe CSS */
 .icon-lock {
   color: #0D7C66;
 }
 
+/* Sélecteur de classe CSS */
 .input-field {
   flex: 1;
   border: none;
@@ -251,11 +289,13 @@ const fillAdminDemo = () => {
   outline: none;
 }
 
+/* Sélecteur de classe CSS */
 .input-field::placeholder {
   color: #0D7C66;
   opacity: 0.8;
 }
 
+/* Sélecteur de classe CSS */
 .suffix-btn {
   background: transparent;
   border: none;
@@ -267,10 +307,12 @@ const fillAdminDemo = () => {
   transition: color 0.2s;
 }
 
+/* Sélecteur de classe CSS */
 .suffix-btn:hover {
   color: #096352;
 }
 
+/* Sélecteur de classe CSS */
 .btn-submit {
   background: #FFFFFF;
   border: none;
@@ -287,15 +329,18 @@ const fillAdminDemo = () => {
   margin-top: 8px;
 }
 
+/* Sélecteur de classe CSS */
 .btn-submit:hover:not(:disabled) {
   background-color: #F8F9FA;
 }
 
+/* Sélecteur de classe CSS */
 .btn-submit:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
+/* Sélecteur de classe CSS */
 .btn-link {
   background: transparent;
   border: none;
@@ -306,10 +351,12 @@ const fillAdminDemo = () => {
   text-align: center;
 }
 
+/* Sélecteur de classe CSS */
 .btn-link:hover {
   text-decoration: underline;
 }
 
+/* Sélecteur de classe CSS */
 .error-msg {
   color: #DC2626;
   font-weight: 600;
@@ -318,6 +365,7 @@ const fillAdminDemo = () => {
   margin-top: 8px;
 }
 
+/* Sélecteur de classe CSS */
 .spinner {
   width: 22px;
   height: 22px;

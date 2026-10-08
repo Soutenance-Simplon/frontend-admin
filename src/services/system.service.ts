@@ -1,5 +1,7 @@
+// Importation du module ou composant
 import api from './api'
 
+// Exportation
 export interface AuditLogItem {
   id: string
   // QUI
@@ -30,16 +32,22 @@ export interface AuditLogItem {
   }
 }
 
+// Définition de fonction
 function parseActionDetails(actRaw: string, details?: string, ip?: string, tel?: string): {
   category: AuditLogItem['actionCategory']
   title: string
   desc: string
   target: string
 } {
+  // Déclaration de variable
   const act = (actRaw || '').toUpperCase()
+  // Déclaration de variable
   let category: AuditLogItem['actionCategory'] = 'CONNEXION'
+  // Déclaration de variable
   let title = 'Action Système'
+  // Déclaration de variable
   let desc = details || 'Opération enregistrée'
+  // Déclaration de variable
   let target = ip ? `IP : ${ip}` : (tel ? `Tél : ${tel}` : 'Plateforme Diam-Yaraam')
 
   switch (act) {
@@ -129,6 +137,7 @@ function parseActionDetails(actRaw: string, details?: string, ip?: string, tel?:
       desc = details || 'Contestation d’accès d’urgence émise par le patient'
       break
     default:
+      // Condition logique
       if (act.includes('PAIEMENT') || act.includes('WALLET') || act.includes('TRANSACTION')) {
         category = 'FINANCE'
         title = 'Transaction Financière'
@@ -148,17 +157,26 @@ function parseActionDetails(actRaw: string, details?: string, ip?: string, tel?:
       break
   }
 
+  // Retourne la valeur
   return { category, title, desc, target }
 }
 
+// Exportation
 export const systemService = {
   async getRecentAuditLogs(): Promise<AuditLogItem[]> {
+    // Bloc d'essai pour gérer les erreurs
     try {
+      // Déclaration de variable
       const res = await api.get('/auth/audit/recent')
+      // Déclaration de variable
       const backendLogs = res.data?.data || []
+      // Condition logique
       if (Array.isArray(backendLogs)) {
+        // Retourne la valeur
         return backendLogs.map((b: any, idx: number): AuditLogItem => {
+          // Déclaration de variable
           const actRaw = b.actionType || b.action || ''
+          // Déclaration de variable
           const { category, title, desc, target } = parseActionDetails(
             actRaw,
             b.details || b.description,
@@ -166,22 +184,33 @@ export const systemService = {
             b.telephoneTente
           )
 
+          // Déclaration de variable
           let role: AuditLogItem['actorRole'] = 'SYSTEME'
+          // Déclaration de variable
           const rawRole = (b.userRole || b.user?.role?.nomRole || b.user?.role || '').toUpperCase()
+          // Condition logique
           if (rawRole.includes('ADMIN')) role = 'ADMIN'
+          // Condition logique
           else if (rawRole.includes('MEDECIN')) role = 'MEDECIN'
+          // Condition logique
           else if (rawRole.includes('PATIENT')) role = 'PATIENT'
+          // Condition logique
           else if (b.userName || b.userTelephone || b.telephoneTente) role = 'PATIENT'
 
+          // Déclaration de variable
           const actorName = b.userName ||
             (b.user ? `${b.user.firstName || ''} ${b.user.lastName || ''}`.trim() : null) ||
             (b.telephoneTente ? `Utilisateur (${b.telephoneTente})` : 'Utilisateur Système')
 
+          // Déclaration de variable
           const actorTelephone = b.userTelephone || b.user?.telephone || b.telephoneTente || ''
 
+          // Déclaration de variable
           const isAlert = actRaw.includes('SIGNALEMENT') || actRaw.includes('BRIS_DE_GLACE') || actRaw.includes('BLOQUE')
+          // Déclaration de variable
           const isSuccess = b.success !== false && !actRaw.includes('ECHEC') && !isAlert
 
+          // Retourne la valeur
           return {
             id: String(b.id || `audit-${idx}`),
             actorName,
@@ -200,9 +229,11 @@ export const systemService = {
         })
       }
     } catch (err) {
+      // Trace dans la console de debug
       console.error('Erreur chargement journaux audit réels:', err)
     }
 
+    // Retourne la valeur
     return []
   }
 }

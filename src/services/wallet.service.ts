@@ -1,5 +1,7 @@
+// Importation du module ou composant
 import api from './api'
 
+// Exportation
 export interface WalletItem {
   id: string
   userId: string
@@ -10,6 +12,7 @@ export interface WalletItem {
   updatedAt: string
 }
 
+// Exportation
 export interface TransactionItem {
   id: string
   typeTransaction: string
@@ -26,6 +29,7 @@ export interface TransactionItem {
   }
 }
 
+// Exportation
 export interface WalletStats {
   totalWallets: number
   soldeTotalPlateforme: number
@@ -33,19 +37,26 @@ export interface WalletStats {
   nombreTransactions: number
 }
 
+// Exportation
 export const walletService = {
   async getAllWallets(): Promise<WalletItem[]> {
+    // Déclaration de variable
     const res = await api.get('/wallet/admin/all-wallets')
+    // Retourne la valeur
     return res.data?.data || []
   },
 
   async getAllTransactions(): Promise<TransactionItem[]> {
+    // Déclaration de variable
     const res = await api.get('/wallet/admin/all-transactions')
+    // Retourne la valeur
     return res.data?.data || []
   },
 
   async getWalletStats(): Promise<WalletStats> {
+    // Déclaration de variable
     const res = await api.get('/wallet/admin/stats')
+    // Retourne la valeur
     return res.data?.data
   },
 
@@ -55,7 +66,9 @@ export const walletService = {
     type: 'CREDIT' | 'DEBIT'
     justification: string
   }): Promise<TransactionItem> {
+    // Déclaration de variable
     const res = await api.post('/wallet/admin/ajuster', payload)
+    // Retourne la valeur
     return res.data?.data
   }
 }

@@ -1,5 +1,7 @@
+// Importation du module ou composant
 import { ref } from 'vue'
 
+// Exportation
 export interface ConfirmOptions {
   title?: string
   message: string
@@ -13,6 +15,7 @@ interface ConfirmState extends ConfirmOptions {
   resolve: (value: boolean) => void
 }
 
+// Déclaration de variable
 const state = ref<ConfirmState>({
   isOpen: false,
   title: 'Confirmation requise',
@@ -23,9 +26,13 @@ const state = ref<ConfirmState>({
   resolve: () => {}
 })
 
+// Exportation
 export function useConfirm() {
+  // Déclaration de variable
   const confirm = (options: ConfirmOptions | string): Promise<boolean> => {
+    // Retourne la valeur
     return new Promise((resolve) => {
+      // Déclaration de variable
       const opts: ConfirmOptions = typeof options === 'string'
         ? { message: options }
         : options
@@ -42,16 +49,19 @@ export function useConfirm() {
     })
   }
 
+  // Déclaration de variable
   const handleConfirm = () => {
     state.value.isOpen = false
     state.value.resolve(true)
   }
 
+  // Déclaration de variable
   const handleCancel = () => {
     state.value.isOpen = false
     state.value.resolve(false)
   }
 
+  // Retourne la valeur
   return {
     state,
     confirm,

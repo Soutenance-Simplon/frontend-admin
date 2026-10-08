@@ -1,5 +1,7 @@
+// Importation du module ou composant
 import api from './api'
 
+// Exportation
 export interface RendezVousItem {
   id: string
   patientId: string
@@ -24,6 +26,7 @@ export interface RendezVousItem {
   updatedAt?: string
 }
 
+// Exportation
 export interface RdvStats {
   totalRdv: number
   confirmes: number
@@ -34,25 +37,33 @@ export interface RdvStats {
   presentiel: number
 }
 
+// Exportation
 export const rdvService = {
   async getAllRendezVous(): Promise<RendezVousItem[]> {
+    // Déclaration de variable
     const res = await api.get('/rdv/admin/all')
+    // Retourne la valeur
     return res.data?.data || []
   },
 
   async getAdminStats(): Promise<RdvStats> {
+    // Déclaration de variable
     const res = await api.get('/rdv/admin/stats')
+    // Retourne la valeur
     return res.data?.data
   },
 
   async changerStatut(id: string, statut: string, raison?: string): Promise<RendezVousItem> {
+    // Déclaration de variable
     const res = await api.put(`/rdv/${id}/statut`, { statut, raison }, {
       params: { nouveauStatut: statut, raison }
     })
+    // Retourne la valeur
     return res.data?.data
   },
 
   async supprimerRendezVous(id: string): Promise<void> {
+    // Attente de la promesse (asynchrone)
     await api.delete(`/rdv/${id}`)
   }
 }
